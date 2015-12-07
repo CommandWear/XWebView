@@ -135,18 +135,26 @@ extension WKWebView {
     // See http://nshipster.com/swift-objc-runtime/
     private static var initialized: dispatch_once_t = 0
     public override class func initialize() {
-        if #available(iOS 9, *) { return }
         guard self == WKWebView.self else { return }
-        dispatch_once(&initialized) {
-            let selector = Selector("loadFileURL:allowingReadAccessToURL:")
-            let method = class_getInstanceMethod(self, Selector("_loadFileURL:allowingReadAccessToURL:"))
-            assert(method != nil)
-            if class_addMethod(self, selector, method_getImplementation(method), method_getTypeEncoding(method)) {
-                log("+Running on iOS 8.x")
+        if #available(iOS 9, *) {
+            dispatch_once(&initialized) {
                 method_exchangeImplementations(
-                    class_getInstanceMethod(self, Selector("loadHTMLString:baseURL:")),
-                    class_getInstanceMethod(self, Selector("_loadHTMLString:baseURL:"))
+                    class_getInstanceMethod(self, Selector("loadFileURL:allowingReadAccessToURL:")),
+                    class_getInstanceMethod(self, Selector("_loadFileURL:allowingReadAccessToURL:"))
                 )
+            }
+        } else {
+            dispatch_once(&initialized) {
+                let selector = Selector("loadFileURL:allowingReadAccessToURL:")
+                let method = class_getInstanceMethod(self, Selector("_loadFileURL:allowingReadAccessToURL:"))
+                assert(method != nil)
+                if class_addMethod(self, selector, method_getImplementation(method), method_getTypeEncoding(method)) {
+                    print("<XWV> INFO: Platform is iOS 8.x")
+                    method_exchangeImplementations(
+                        class_getInstanceMethod(self, Selector("loadHTMLString:baseURL:")),
+                        class_getInstanceMethod(self, Selector("_loadHTMLString:baseURL:"))
+                    )
+                }
             }
         }
     }
